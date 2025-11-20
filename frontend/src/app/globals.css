@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 11, 12, 21;
+  --background-end-rgb: 21, 22, 33;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: #0B0C15;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/5 backdrop-blur-lg border border-white/10;
+  }
+  
+  .text-glow {
+    text-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+  }
+
+  .neon-border {
+    box-shadow: 0 0 10px rgba(112, 0, 255, 0.3);
+  }
+}

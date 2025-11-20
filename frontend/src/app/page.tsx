@@ -1,0 +1,131 @@
+'use client';
+
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { motion } from 'framer-motion';
+import { MessageSquare, TrendingUp, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
+
+interface Post {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  author: {
+    username: string;
+  };
+  comments: any[];
+  reactions: any[];
+}
+
+export default function Home() {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const { isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+        const response = await axios.get(`${apiUrl}/posts`);
+        setPosts(response.data);
+      } catch (error) {
+        console.error('Failed to fetch posts', error);
+      }
+    };
+
+    fetchPosts();
+  }, []);
+
+  return (
+    <div className="space-y-12 pt-20">
+      {/* Hero Section */}
+      <section className="relative py-20 text-center">
+        <div className="absolute inset-0 bg-hero-glow opacity-50 pointer-events-none" />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="relative z-10 space-y-6"
+        >
+          <h1 className="text-6xl font-bold tracking-tight">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-neon-blue via-neon-purple to-neon-pink">
+              The Future of
+            </span>
+            <br />
+            <span className="text-white text-glow">Discussion</span>
+          </h1>
+          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+            Join the next generation community platform. Share ideas, connect with peers, and explore the unknown.
+          </p>
+          <div className="flex justify-center gap-4 pt-4">
+            <Link href={isAuthenticated ? "/create-post" : "/login"}>
+              <Button size="lg" className="shadow-neon-blue/20 shadow-lg">
+                Start Discussion
+              </Button>
+            </Link>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* Recent Discussions */}
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-3xl font-bold text-white flex items-center gap-2">
+            <span className="w-2 h-8 bg-neon-purple rounded-full" />
+            Recent Discussions
+          </h2>
+          {isAuthenticated && (
+            <Link href="/create-post">
+              <Button>New Post</Button>
+            </Link>
+          )}
+        </div>
+        
+        <div className="grid gap-4">
+          {posts.length === 0 ? (
+             <Card className="text-center py-12">
+               <p className="text-gray-400">No discussions yet. Be the first to start one!</p>
+             </Card>
+          ) : (
+            posts.map((post) => (
+              <Link href={`/posts/${post.id}`} key={post.id}>
+                <Card hover className="group cursor-pointer h-full">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-2 w-full">
+                      <h3 className="text-xl font-semibold text-white group-hover:text-neon-blue transition-colors">
+                        {post.title}
+                      </h3>
+                      <p className="text-gray-400 line-clamp-2">
+                        {post.content}
+                      </p>
+                      <div className="flex justify-between items-center pt-4 border-t border-white/5 mt-4">
+                        <div className="flex gap-4 text-sm text-gray-500">
+                          <span>@{post.author?.username || 'Unknown'}</span>
+                          <span>•</span>
+                          <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex gap-4 text-sm text-gray-400">
+                          <span className="flex items-center gap-1">
+                            <MessageSquare className="w-4 h-4" />
+                            {post.comments?.length || 0}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <TrendingUp className="w-4 h-4" />
+                            {post.reactions?.length || 0}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
