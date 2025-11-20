@@ -1,0 +1,77 @@
+.forum-page {
+  padding: 30px 20px;
+}
+
+.forum-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.breadcrumb {
+  color: var(--text-light);
+}
+
+.forum-description {
+  color: var(--text-light);
+  margin-bottom: 30px;
+}
+
+.topics-list {
+  display: grid;
+  gap: 15px;
+}
+
+.topic-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.topic-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  text-decoration: none;
+}
+
+.topic-info {
+  flex: 1;
+}
+
+.topic-info h4 {
+  color: var(--primary-color);
+  margin-bottom: 8px;
+}
+
+.topic-meta {
+  font-size: 14px;
+  color: var(--text-light);
+  display: flex;
+  gap: 8px;
+}
+
+.topic-stats {
+  display: flex;
+  gap: 30px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  margin-right: 10px;
+}
+
+.badge-pin {
+  background: var(--warning-color);
+  color: white;
+}
+
+.badge-lock {
+  background: var(--danger-color);
+  color: white;
+}
