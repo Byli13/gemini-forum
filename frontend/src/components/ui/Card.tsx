@@ -20,7 +20,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
         animate={{ opacity: 1, y: 0 }}
         whileHover={hover ? { y: -5, boxShadow: '0 10px 30px -10px rgba(0, 240, 255, 0.2)' } : undefined}
         className={cn(
-          'glass rounded-xl p-6 transition-all duration-300',
+          'glass rounded-xl p-6',
           className
         )}
         {...props}

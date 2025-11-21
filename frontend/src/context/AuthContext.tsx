@@ -2,11 +2,13 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 
 interface User {
   id: string;
   email: string;
   username?: string;
+  isAdmin?: boolean;
 }
 
 interface AuthContextType {
@@ -36,7 +38,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return {
         id: payload.sub || payload.userId || payload.id,
         email: payload.email,
-        username: payload.username
+        username: payload.username,
+        isAdmin: payload.isAdmin
       };
     } catch (e) {
       return null;
@@ -49,6 +52,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsAuthenticated(true);
       setUser(decodeUser(token));
     }
+
+    // Axios interceptor to handle 401s
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          logout();
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
   }, []);
 
   const login = (token: string) => {

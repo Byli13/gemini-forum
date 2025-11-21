@@ -45,6 +45,7 @@ export default function Register() {
             onChange={(e) => setUsername(e.target.value)}
             placeholder="CyberPunk2077"
             required
+            maxLength={20}
           />
 
           <Input
@@ -63,6 +64,7 @@ export default function Register() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             required
+            maxLength={100}
           />
 
           <Button type="submit" className="w-full bg-gradient-to-r from-neon-pink to-neon-purple" size="lg">

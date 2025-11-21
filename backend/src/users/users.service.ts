@@ -28,7 +28,15 @@ export class UsersService implements OnModuleInit {
   }
 
   async findOneByUsername(username: string): Promise<User | undefined> {
-    return this.usersRepository.findOne({ where: { username } });
+    const user = await this.usersRepository.createQueryBuilder('user')
+      .where('user.username = :username', { username })
+      .leftJoinAndSelect('user.posts', 'post')
+      .loadRelationCountAndMap('post.commentsCount', 'post.comments')
+      .loadRelationCountAndMap('post.reactionsCount', 'post.reactions')
+      .orderBy('post.createdAt', 'DESC')
+      .getOne();
+
+    return user;
   }
 
   async findOneById(id: string): Promise<User | undefined> {

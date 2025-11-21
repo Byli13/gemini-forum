@@ -1,4 +1,4 @@
-# Gemini Forum
+# Gem
 
 A modern, full-stack forum application built with:
 
@@ -19,7 +19,7 @@ A modern, full-stack forum application built with:
 1. Clone the repository (if not already done).
 2. Navigate to the project root:
    ```bash
-   cd gemini-forum
+   cd gem
    ```
 3. Start the application stack:
    ```bash

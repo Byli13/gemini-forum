@@ -33,7 +33,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         className={cn(
-          'rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2',
+          'rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2',
           variants[variant],
           sizes[size],
           className

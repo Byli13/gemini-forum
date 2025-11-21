@@ -11,6 +11,7 @@ import { useAuth } from '@/context/AuthContext';
 export default function CreatePost() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [category, setCategory] = useState('General');
   const router = useRouter();
   const { isAuthenticated } = useAuth();
 
@@ -27,7 +28,7 @@ export default function CreatePost() {
       
       await axios.post(
         `${apiUrl}/posts`,
-        { title, content },
+        { title, content, category },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -49,13 +50,33 @@ export default function CreatePost() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <Input
-            label="Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="What's on your mind?"
-            required
-          />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2">
+              <Input
+                label="Title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="What's on your mind?"
+                required
+                maxLength={100}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-300 ml-1 mb-2 block">
+                Category
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full bg-space-800 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-neon-blue/50 focus:ring-1 focus:ring-neon-blue/50 transition-all duration-200"
+              >
+                <option value="General">General</option>
+                <option value="Tech">Tech</option>
+                <option value="Random">Random</option>
+                <option value="News">News</option>
+              </select>
+            </div>
+          </div>
           
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-300 ml-1">
@@ -64,9 +85,10 @@ export default function CreatePost() {
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="w-full bg-space-800 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-neon-blue/50 focus:ring-1 focus:ring-neon-blue/50 transition-all duration-200 min-h-[200px]"
+              className="w-full bg-space-800 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-neon-blue/50 focus:ring-1 focus:ring-neon-blue/50 transition-all duration-200 min-h-[200px] resize-none"
               placeholder="Elaborate on your topic..."
               required
+              maxLength={5000}
             />
           </div>
 

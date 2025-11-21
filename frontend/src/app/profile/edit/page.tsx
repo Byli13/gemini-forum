@@ -124,8 +124,9 @@ export default function EditProfilePage() {
               <textarea
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                className="w-full bg-space-800 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-neon-blue/50 focus:ring-1 focus:ring-neon-blue/50 min-h-[120px]"
+                className="w-full bg-space-800 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-neon-blue/50 focus:ring-1 focus:ring-neon-blue/50 min-h-[120px] resize-none"
                 placeholder="Tell us about yourself..."
+                maxLength={500}
               />
             </div>
 

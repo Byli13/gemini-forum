@@ -9,6 +9,7 @@ import axios from 'axios';
 import useSWRInfinite from 'swr/infinite';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface Post {
   id: string;
@@ -21,6 +22,8 @@ interface Post {
   };
   comments: any[];
   reactions: any[];
+  commentsCount?: number;
+  reactionsCount?: number;
 }
 
 interface PostResponse {
@@ -44,12 +47,27 @@ export default function Home() {
     return `${apiUrl}/posts?page=${pageIndex + 1}&limit=10`;
   };
 
-  const { data, error, size, setSize, isLoading } = useSWRInfinite<PostResponse>(getKey, fetcher);
+  const [visitedPosts, setVisitedPosts] = useState<string[]>([]);
+
+  useEffect(() => {
+    const visited = JSON.parse(localStorage.getItem('visitedPosts') || '[]');
+    setVisitedPosts(visited);
+  }, []);
+
+  const { data, error, size, setSize, isLoading } = useSWRInfinite<PostResponse>(getKey, fetcher, {
+    revalidateFirstPage: true,
+    revalidateOnMount: true,
+  });
 
   const posts = data ? data.flatMap(page => page.data) : [];
   const isLoadingMore = isLoading || (size > 0 && data && typeof data[size - 1] === 'undefined');
   const isEmpty = data?.[0]?.data.length === 0;
   const isReachingEnd = isEmpty || (data && data[data.length - 1]?.data.length < 10);
+
+  // Debug log
+  useEffect(() => {
+    console.log('Home Page State:', { isLoading, error, postsLength: posts.length, data });
+  }, [isLoading, error, posts, data]);
 
   return (
     <div className="space-y-12 pt-20">
@@ -57,7 +75,7 @@ export default function Home() {
       <section className="relative py-20 text-center">
         <div className="absolute inset-0 bg-hero-glow opacity-50 pointer-events-none" />
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 1, y: 0 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
           className="relative z-10 space-y-6"
@@ -97,7 +115,11 @@ export default function Home() {
         </div>
         
         <div className="grid gap-4">
-          {isLoading && posts.length === 0 ? (
+          {error ? (
+             <Card className="text-center py-12 border-red-500/50">
+               <p className="text-red-400">Failed to load discussions. Please try again later.</p>
+             </Card>
+          ) : isLoading && posts.length === 0 ? (
              <Card className="text-center py-12">
                <div className="flex justify-center items-center gap-2 text-gray-400">
                  <Loader2 className="w-6 h-6 animate-spin" />
@@ -115,7 +137,7 @@ export default function Home() {
                   <Card hover className="group cursor-pointer h-full">
                     <div className="flex justify-between items-start">
                       <div className="space-y-2 w-full">
-                        <h3 className="text-xl font-semibold text-white group-hover:text-neon-blue transition-colors">
+                        <h3 className={`text-xl font-semibold transition-colors ${visitedPosts.includes(post.id) ? 'text-gray-500' : 'text-white group-hover:text-neon-blue'}`}>
                           {post.title}
                         </h3>
                         <p className="text-gray-400 line-clamp-2">
@@ -128,11 +150,14 @@ export default function Home() {
                               window.location.href = `/profile/${post.author?.username}`;
                             }}>
                               {post.author?.avatarUrl ? (
-                                <img 
-                                  src={`http://localhost:4000${post.author.avatarUrl}`} 
-                                  alt={post.author.username}
-                                  className="w-6 h-6 rounded-full object-cover"
-                                />
+                                <div className="relative w-6 h-6 rounded-full overflow-hidden">
+                                  <Image 
+                                    src={`http://localhost:4000${post.author.avatarUrl}`} 
+                                    alt={post.author.username}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                </div>
                               ) : (
                                 <div className="w-6 h-6 rounded-full bg-space-700 flex items-center justify-center">
                                   <span className="text-xs text-white">{post.author?.username?.[0]?.toUpperCase() || '?'}</span>
@@ -146,11 +171,11 @@ export default function Home() {
                           <div className="flex gap-4 text-sm text-gray-400">
                             <span className="flex items-center gap-1">
                               <MessageSquare className="w-4 h-4" />
-                              {post.comments?.length || 0}
+                              {post.commentsCount || post.comments?.length || 0}
                             </span>
                             <span className="flex items-center gap-1">
                               <TrendingUp className="w-4 h-4" />
-                              {post.reactions?.length || 0}
+                              {post.reactionsCount || post.reactions?.length || 0}
                             </span>
                           </div>
                         </div>

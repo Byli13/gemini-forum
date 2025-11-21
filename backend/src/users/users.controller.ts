@@ -6,6 +6,7 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { Express } from 'express';
 import { Multer } from 'multer';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Controller('users')
 export class UsersController {
@@ -41,13 +42,13 @@ export class UsersController {
       fileSize: 2 * 1024 * 1024, // 2MB
     },
   }))
-  async updateProfile(@Request() req, @Body() body: { bio?: string }, @UploadedFile() file?: Express.Multer.File) {
+  async updateProfile(@Request() req, @Body() body: UpdateProfileDto, @UploadedFile() file?: Express.Multer.File) {
     const updateData: any = {};
     if (body.bio) updateData.bio = body.bio;
     if (file) {
       updateData.avatarUrl = `/uploads/${file.filename}`;
     }
     
-    return this.usersService.update(req.user.userId, updateData);
+    return this.usersService.update(req.user.id, updateData);
   }
 }

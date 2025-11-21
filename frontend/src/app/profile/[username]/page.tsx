@@ -6,9 +6,19 @@ import axios from 'axios';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { User, Calendar, Edit } from 'lucide-react';
+import { User, Calendar, Edit, MessageSquare, TrendingUp } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
+import Image from 'next/image';
+
+interface Post {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  commentsCount?: number;
+  reactionsCount?: number;
+}
 
 interface UserProfile {
   id: string;
@@ -17,6 +27,7 @@ interface UserProfile {
   bio?: string;
   avatarUrl?: string;
   createdAt: string;
+  posts: Post[];
 }
 
 export default function ProfilePage() {
@@ -51,10 +62,12 @@ export default function ProfilePage() {
           <div className="flex flex-col md:flex-row items-center gap-8">
             <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-neon-blue/50 shadow-[0_0_20px_rgba(0,243,255,0.3)]">
               {profile.avatarUrl ? (
-                <img 
+                <Image 
                   src={`http://localhost:4000${profile.avatarUrl}`} 
                   alt={profile.username}
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
+                  priority
                 />
               ) : (
                 <div className="w-full h-full bg-space-800 flex items-center justify-center">
@@ -87,6 +100,53 @@ export default function ProfilePage() {
             </div>
           </div>
         </Card>
+
+        <div className="mt-12 space-y-6">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <span className="w-2 h-8 bg-neon-purple rounded-full" />
+            User's Discussions ({profile.posts?.length || 0})
+          </h2>
+
+          <div className="grid gap-4">
+            {profile.posts && profile.posts.length > 0 ? (
+              profile.posts.map((post) => (
+                <Link href={`/posts/${post.id}`} key={post.id}>
+                  <Card hover className="group cursor-pointer h-full">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-2 w-full">
+                        <h3 className="text-xl font-semibold text-white group-hover:text-neon-blue transition-colors">
+                          {post.title}
+                        </h3>
+                        <p className="text-gray-400 line-clamp-2">
+                          {post.content}
+                        </p>
+                        <div className="flex justify-between items-center pt-4 border-t border-white/5 mt-4">
+                          <div className="flex items-center gap-3 text-sm text-gray-500">
+                            <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                          </div>
+                          <div className="flex gap-4 text-sm text-gray-400">
+                            <span className="flex items-center gap-1">
+                              <MessageSquare className="w-4 h-4" />
+                              {post.commentsCount || 0}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <TrendingUp className="w-4 h-4" />
+                              {post.reactionsCount || 0}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
+              ))
+            ) : (
+              <Card className="text-center py-12">
+                <p className="text-gray-400">No discussions started yet.</p>
+              </Card>
+            )}
+          </div>
+        </div>
       </motion.div>
     </div>
   );
