@@ -30,10 +30,17 @@ export class ReactionsService {
 
     if (existingReaction) {
       if (existingReaction.type === createReactionDto.type) {
-        return this.reactionsRepository.remove(existingReaction);
+        await this.reactionsRepository.remove(existingReaction);
+        return this.postsRepository.findOne({
+          where: { id: post.id },
+          relations: ['author', 'comments', 'comments.author', 'reactions', 'reactions.user'],
+        });
       } else {
         await this.reactionsRepository.update(existingReaction.id, { type: createReactionDto.type });
-        return this.reactionsRepository.findOne({ where: { id: existingReaction.id } });
+        return this.postsRepository.findOne({
+          where: { id: post.id },
+          relations: ['author', 'comments', 'comments.author', 'reactions', 'reactions.user'],
+        });
       }
     }
 
@@ -42,6 +49,10 @@ export class ReactionsService {
       post,
       user,
     });
-    return this.reactionsRepository.save(reaction);
+    await this.reactionsRepository.save(reaction);
+    return this.postsRepository.findOne({
+      where: { id: post.id },
+      relations: ['author', 'comments', 'comments.author', 'reactions', 'reactions.user'],
+    });
   }
 }

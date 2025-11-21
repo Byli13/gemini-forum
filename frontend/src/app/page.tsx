@@ -3,9 +3,10 @@
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { motion } from 'framer-motion';
-import { MessageSquare, TrendingUp, Users } from 'lucide-react';
+import { MessageSquare, TrendingUp, Users, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import useSWRInfinite from 'swr/infinite';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 
@@ -16,28 +17,39 @@ interface Post {
   createdAt: string;
   author: {
     username: string;
+    avatarUrl?: string;
   };
   comments: any[];
   reactions: any[];
 }
 
+interface PostResponse {
+  data: Post[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+const fetcher = (url: string) => axios.get(url).then(res => res.data);
+
 export default function Home() {
-  const [posts, setPosts] = useState<Post[]>([]);
   const { isAuthenticated } = useAuth();
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-        const response = await axios.get(`${apiUrl}/posts`);
-        setPosts(response.data);
-      } catch (error) {
-        console.error('Failed to fetch posts', error);
-      }
-    };
+  const getKey = (pageIndex: number, previousPageData: PostResponse | null) => {
+    if (previousPageData && !previousPageData.data.length) return null; // reached the end
+    return `${apiUrl}/posts?page=${pageIndex + 1}&limit=10`;
+  };
 
-    fetchPosts();
-  }, []);
+  const { data, error, size, setSize, isLoading } = useSWRInfinite<PostResponse>(getKey, fetcher);
+
+  const posts = data ? data.flatMap(page => page.data) : [];
+  const isLoadingMore = isLoading || (size > 0 && data && typeof data[size - 1] === 'undefined');
+  const isEmpty = data?.[0]?.data.length === 0;
+  const isReachingEnd = isEmpty || (data && data[data.length - 1]?.data.length < 10);
 
   return (
     <div className="space-y-12 pt-20">
@@ -85,44 +97,83 @@ export default function Home() {
         </div>
         
         <div className="grid gap-4">
-          {posts.length === 0 ? (
+          {isLoading && posts.length === 0 ? (
+             <Card className="text-center py-12">
+               <div className="flex justify-center items-center gap-2 text-gray-400">
+                 <Loader2 className="w-6 h-6 animate-spin" />
+                 <p>Loading discussions...</p>
+               </div>
+             </Card>
+          ) : posts.length === 0 ? (
              <Card className="text-center py-12">
                <p className="text-gray-400">No discussions yet. Be the first to start one!</p>
              </Card>
           ) : (
-            posts.map((post) => (
-              <Link href={`/posts/${post.id}`} key={post.id}>
-                <Card hover className="group cursor-pointer h-full">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-2 w-full">
-                      <h3 className="text-xl font-semibold text-white group-hover:text-neon-blue transition-colors">
-                        {post.title}
-                      </h3>
-                      <p className="text-gray-400 line-clamp-2">
-                        {post.content}
-                      </p>
-                      <div className="flex justify-between items-center pt-4 border-t border-white/5 mt-4">
-                        <div className="flex gap-4 text-sm text-gray-500">
-                          <span>@{post.author?.username || 'Unknown'}</span>
-                          <span>•</span>
-                          <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex gap-4 text-sm text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <MessageSquare className="w-4 h-4" />
-                            {post.comments?.length || 0}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <TrendingUp className="w-4 h-4" />
-                            {post.reactions?.length || 0}
-                          </span>
+            <>
+              {posts.map((post) => (
+                <Link href={`/posts/${post.id}`} key={post.id}>
+                  <Card hover className="group cursor-pointer h-full">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-2 w-full">
+                        <h3 className="text-xl font-semibold text-white group-hover:text-neon-blue transition-colors">
+                          {post.title}
+                        </h3>
+                        <p className="text-gray-400 line-clamp-2">
+                          {post.content}
+                        </p>
+                        <div className="flex justify-between items-center pt-4 border-t border-white/5 mt-4">
+                          <div className="flex items-center gap-3 text-sm text-gray-500">
+                            <div className="flex items-center gap-2 hover:text-neon-blue transition-colors" onClick={(e) => {
+                              e.preventDefault();
+                              window.location.href = `/profile/${post.author?.username}`;
+                            }}>
+                              {post.author?.avatarUrl ? (
+                                <img 
+                                  src={`http://localhost:4000${post.author.avatarUrl}`} 
+                                  alt={post.author.username}
+                                  className="w-6 h-6 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-6 h-6 rounded-full bg-space-700 flex items-center justify-center">
+                                  <span className="text-xs text-white">{post.author?.username?.[0]?.toUpperCase() || '?'}</span>
+                                </div>
+                              )}
+                              <span>@{post.author?.username || 'Unknown'}</span>
+                            </div>
+                            <span>•</span>
+                            <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                          </div>
+                          <div className="flex gap-4 text-sm text-gray-400">
+                            <span className="flex items-center gap-1">
+                              <MessageSquare className="w-4 h-4" />
+                              {post.comments?.length || 0}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <TrendingUp className="w-4 h-4" />
+                              {post.reactions?.length || 0}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </Card>
-              </Link>
-            ))
+                  </Card>
+                </Link>
+              ))}
+              
+              {!isReachingEnd && (
+                <div className="flex justify-center pt-4">
+                  <Button 
+                    variant="secondary" 
+                    onClick={() => setSize(size + 1)}
+                    disabled={isLoadingMore}
+                    className="gap-2"
+                  >
+                    {isLoadingMore && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {isLoadingMore ? 'Loading more...' : 'Load More'}
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

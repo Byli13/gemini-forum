@@ -1,6 +1,7 @@
 import { Controller, Request, Post, UseGuards, Body } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
+import { RegisterDto } from './dto/register.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -13,7 +14,7 @@ export class AuthController {
   }
 
   @Post('register')
-  async register(@Body() body) {
+  async register(@Body() body: RegisterDto) {
     return this.authService.register(body);
   }
 }

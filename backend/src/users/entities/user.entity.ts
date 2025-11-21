@@ -14,8 +14,17 @@ export class User {
   @Column()
   password: string;
 
-  @Column({ nullable: true })
+  @Column({ unique: true })
   username: string;
+
+  @Column({ nullable: true })
+  avatarUrl: string;
+
+  @Column({ nullable: true, type: 'text' })
+  bio: string;
+
+  @Column({ default: false })
+  isAdmin: boolean;
 
   @OneToMany(() => Post, (post) => post.author)
   posts: Post[];

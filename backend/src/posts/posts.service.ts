@@ -20,11 +20,23 @@ export class PostsService {
     return this.postsRepository.save(post);
   }
 
-  findAll() {
-    return this.postsRepository.find({
+  async findAll(page: number = 1, limit: number = 10) {
+    const [items, total] = await this.postsRepository.findAndCount({
       relations: ['author', 'comments', 'reactions'],
       order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+    
+    return {
+      data: items,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   findOne(id: string) {

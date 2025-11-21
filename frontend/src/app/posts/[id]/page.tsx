@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -41,9 +41,11 @@ interface Post {
 
 export default function PostDetail() {
   const { id } = useParams();
+  const router = useRouter();
   const [post, setPost] = useState<Post | null>(null);
   const [newComment, setNewComment] = useState('');
-  const { isAuthenticated } = useAuth();
+  const [reacting, setReacting] = useState(false);
+  const { isAuthenticated, user } = useAuth();
 
   const fetchPost = async () => {
     try {
@@ -81,17 +83,61 @@ export default function PostDetail() {
   };
 
   const handleReaction = async (type: 'LIKE' | 'LOVE' | 'SUPPORT') => {
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
+    if (!post) return;
+    const token = localStorage.getItem('token');
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
+    // optimistic update
+    const prev = post;
+    const optimistic = { ...post, reactions: [...post.reactions] } as Post;
+
+    if (user?.id) {
+      const existingIdx = optimistic.reactions.findIndex((r) => r.user?.id === user.id);
+      if (existingIdx !== -1) {
+        const existing = optimistic.reactions[existingIdx];
+        if (existing.type === type) {
+          // remove reaction
+          optimistic.reactions.splice(existingIdx, 1);
+        } else {
+          // change type
+          optimistic.reactions[existingIdx] = { ...existing, type } as Reaction;
+        }
+      } else {
+        // add temporary reaction
+        optimistic.reactions.push({ id: 'temp-' + Date.now(), type, user: { id: user.id } } as Reaction);
+      }
+    } else {
+      // fallback: just increment selected type count by adding a temp reaction
+      optimistic.reactions.push({ id: 'temp-' + Date.now(), type, user: { id: 'unknown' } } as Reaction);
+    }
+
+    setPost(optimistic);
+    setReacting(true);
+
     try {
-      const token = localStorage.getItem('token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-      await axios.post(
+      const resp = await axios.post(
         `${apiUrl}/reactions`,
         { postId: id, type },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      fetchPost();
+      // backend now returns the updated post object
+      if (resp?.data) {
+        setPost(resp.data);
+      } else {
+        // fallback to re-fetch
+        fetchPost();
+      }
     } catch (error) {
       console.error('Failed to react', error);
+      // revert on error
+      setPost(prev);
+    } finally {
+      setReacting(false);
     }
   };
 
@@ -101,6 +147,8 @@ export default function PostDetail() {
     acc[reaction.type] = (acc[reaction.type] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
+
+  const userReactionType = user ? post.reactions.find(r => r.user?.id === user.id)?.type : null;
 
   return (
     <div className="pt-24 max-w-4xl mx-auto space-y-8 px-4">
@@ -128,27 +176,27 @@ export default function PostDetail() {
               variant="ghost"
               size="sm"
               onClick={() => handleReaction('LIKE')}
-              className="gap-2 hover:text-neon-blue"
+              className={`gap-2 ${userReactionType === 'LIKE' ? 'text-neon-blue bg-neon-blue/10' : 'hover:text-neon-blue'}`}
             >
-              <ThumbsUp className="w-4 h-4" />
+              <ThumbsUp className={`w-4 h-4 ${userReactionType === 'LIKE' ? 'fill-current' : ''}`} />
               <span>{reactionCounts['LIKE'] || 0}</span>
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => handleReaction('LOVE')}
-              className="gap-2 hover:text-neon-pink"
+              className={`gap-2 ${userReactionType === 'LOVE' ? 'text-neon-pink bg-neon-pink/10' : 'hover:text-neon-pink'}`}
             >
-              <Heart className="w-4 h-4" />
+              <Heart className={`w-4 h-4 ${userReactionType === 'LOVE' ? 'fill-current' : ''}`} />
               <span>{reactionCounts['LOVE'] || 0}</span>
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => handleReaction('SUPPORT')}
-              className="gap-2 hover:text-neon-purple"
+              className={`gap-2 ${userReactionType === 'SUPPORT' ? 'text-neon-purple bg-neon-purple/10' : 'hover:text-neon-purple'}`}
             >
-              <Star className="w-4 h-4" />
+              <Star className={`w-4 h-4 ${userReactionType === 'SUPPORT' ? 'fill-current' : ''}`} />
               <span>{reactionCounts['SUPPORT'] || 0}</span>
             </Button>
           </div>
