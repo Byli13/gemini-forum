@@ -7,6 +7,7 @@ import { PostsModule } from './posts/posts.module';
 import { CommentsModule } from './comments/comments.module';
 import { ReactionsModule } from './reactions/reactions.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { FollowsModule } from './follows/follows.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 
@@ -29,6 +30,7 @@ import { APP_GUARD } from '@nestjs/core';
     CommentsModule,
     ReactionsModule,
     NotificationsModule,
+    FollowsModule,
   ],
   controllers: [],
   providers: [

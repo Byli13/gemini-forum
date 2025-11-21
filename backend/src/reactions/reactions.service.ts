@@ -13,10 +13,15 @@ export class ReactionsService {
     private reactionsRepository: Repository<Reaction>,
     @InjectRepository(Post)
     private postsRepository: Repository<Post>,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
   ) {}
 
   async toggle(createReactionDto: CreateReactionDto, user: User) {
-    const post = await this.postsRepository.findOne({ where: { id: createReactionDto.postId } });
+    const post = await this.postsRepository.findOne({ 
+      where: { id: createReactionDto.postId },
+      relations: ['author']
+    });
     if (!post) {
       throw new Error('Post not found');
     }
@@ -30,29 +35,35 @@ export class ReactionsService {
 
     if (existingReaction) {
       if (existingReaction.type === createReactionDto.type) {
+        // Removing reaction -> decrease reputation
         await this.reactionsRepository.remove(existingReaction);
-        return this.postsRepository.findOne({
-          where: { id: post.id },
-          relations: ['author', 'comments', 'comments.author', 'reactions', 'reactions.user'],
-        });
+        await this.updateReputation(post.author.id, -1);
       } else {
+        // Changing reaction -> no net change in reputation count (assuming all reactions worth 1)
         await this.reactionsRepository.update(existingReaction.id, { type: createReactionDto.type });
-        return this.postsRepository.findOne({
-          where: { id: post.id },
-          relations: ['author', 'comments', 'comments.author', 'reactions', 'reactions.user'],
-        });
       }
+    } else {
+      // New reaction -> increase reputation
+      const reaction = this.reactionsRepository.create({
+        type: createReactionDto.type,
+        post,
+        user,
+      });
+      await this.reactionsRepository.save(reaction);
+      await this.updateReputation(post.author.id, 1);
     }
 
-    const reaction = this.reactionsRepository.create({
-      type: createReactionDto.type,
-      post,
-      user,
-    });
-    await this.reactionsRepository.save(reaction);
     return this.postsRepository.findOne({
       where: { id: post.id },
       relations: ['author', 'comments', 'comments.author', 'reactions', 'reactions.user'],
     });
+  }
+
+  private async updateReputation(userId: string, amount: number) {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (user) {
+      user.reputation = (user.reputation || 0) + amount;
+      await this.usersRepository.save(user);
+    }
   }
 }

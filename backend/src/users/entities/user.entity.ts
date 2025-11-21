@@ -2,6 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateCol
 import { Post } from '../../posts/entities/post.entity';
 import { Comment } from '../../comments/entities/comment.entity';
 import { Reaction } from '../../reactions/entities/reaction.entity';
+import { Follow } from '../../follows/follow.entity';
 
 @Entity()
 export class User {
@@ -23,6 +24,9 @@ export class User {
   @Column({ nullable: true, type: 'text' })
   bio: string;
 
+  @Column({ default: 0 })
+  reputation: number;
+
   @Column({ default: false })
   isAdmin: boolean;
 
@@ -34,6 +38,12 @@ export class User {
 
   @OneToMany(() => Reaction, (reaction) => reaction.user)
   reactions: Reaction[];
+
+  @OneToMany(() => Follow, (follow) => follow.following)
+  followers: Follow[];
+
+  @OneToMany(() => Follow, (follow) => follow.follower)
+  following: Follow[];
 
   @CreateDateColumn()
   createdAt: Date;

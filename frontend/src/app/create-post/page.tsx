@@ -90,6 +90,9 @@ export default function CreatePost() {
               required
               maxLength={5000}
             />
+            <p className="text-xs text-gray-500 ml-1">
+              Markdown is supported. Use **bold**, *italics*, `code`, and [links](url).
+            </p>
           </div>
 
           <div className="flex gap-4">

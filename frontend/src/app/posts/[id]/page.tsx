@@ -11,31 +11,7 @@ import { useAuth } from '@/context/AuthContext';
 import { motion } from 'framer-motion';
 import { MessageSquare, ThumbsUp, Heart, Star, Pencil, Trash2, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
-
-const RichText = ({ content }: { content: string }) => {
-  if (!content) return null;
-  const parts = content.split(/(@\w+)/g);
-  return (
-    <span>
-      {parts.map((part, i) => {
-        if (part.match(/^@\w+$/)) {
-          const username = part.substring(1);
-          return (
-            <Link 
-              key={i} 
-              href={`/profile/${username}`}
-              className="text-neon-blue hover:underline font-medium"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {part}
-            </Link>
-          );
-        }
-        return part;
-      })}
-    </span>
-  );
-};
+import MarkdownRenderer from '@/components/MarkdownRenderer';
 
 interface Comment {
   id: string;
@@ -450,9 +426,7 @@ export default function PostDetail() {
                   )}
                 </div>
                 <div className="prose prose-invert max-w-none">
-                  <p className="text-gray-300 text-lg leading-relaxed whitespace-pre-wrap break-words">
-                    <RichText content={post.content} />
-                  </p>
+                  <MarkdownRenderer content={post.content} />
                 </div>
               </>
             )}
@@ -578,9 +552,9 @@ export default function PostDetail() {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-gray-300 break-words whitespace-pre-wrap">
-                    <RichText content={comment.content} />
-                  </p>
+                  <div className="text-gray-300 break-words">
+                    <MarkdownRenderer content={comment.content} />
+                  </div>
                 )}
               </Card>
             </motion.div>

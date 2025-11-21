@@ -6,7 +6,7 @@ import axios from 'axios';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { User, Calendar, Edit, MessageSquare, TrendingUp } from 'lucide-react';
+import { User, Calendar, Edit, MessageSquare, TrendingUp, Award, Users } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -27,12 +27,16 @@ interface UserProfile {
   bio?: string;
   avatarUrl?: string;
   createdAt: string;
+  reputation: number;
   posts: Post[];
 }
 
 export default function ProfilePage() {
   const { username } = useParams();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
   const { user: currentUser } = useAuth();
 
   useEffect(() => {
@@ -41,12 +45,51 @@ export default function ProfilePage() {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
         const response = await axios.get(`${apiUrl}/users/${username}`);
         setProfile(response.data);
+
+        // Fetch follow stats
+        const followersRes = await axios.get(`${apiUrl}/follows/${response.data.id}/followers`);
+        const followingRes = await axios.get(`${apiUrl}/follows/${response.data.id}/following`);
+        setFollowersCount(followersRes.data.length);
+        setFollowingCount(followingRes.data.length);
+
+        if (currentUser && currentUser.username !== username) {
+          const token = localStorage.getItem('token');
+          if (token) {
+            const checkRes = await axios.get(`${apiUrl}/follows/${response.data.id}/check`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            setIsFollowing(checkRes.data);
+          }
+        }
       } catch (error) {
         console.error('Failed to fetch profile', error);
       }
     };
     if (username) fetchProfile();
-  }, [username]);
+  }, [username, currentUser]);
+
+  const handleFollow = async () => {
+    if (!currentUser || !profile) return;
+    try {
+      const token = localStorage.getItem('token');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      
+      if (isFollowing) {
+        await axios.delete(`${apiUrl}/follows/${profile.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setFollowersCount(prev => prev - 1);
+      } else {
+        await axios.post(`${apiUrl}/follows/${profile.id}`, {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setFollowersCount(prev => prev + 1);
+      }
+      setIsFollowing(!isFollowing);
+    } catch (error) {
+      console.error('Failed to toggle follow', error);
+    }
+  };
 
   if (!profile) return <div className="pt-24 text-center text-white">Loading...</div>;
 
@@ -62,12 +105,10 @@ export default function ProfilePage() {
           <div className="flex flex-col md:flex-row items-center gap-8">
             <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-neon-blue/50 shadow-[0_0_20px_rgba(0,243,255,0.3)]">
               {profile.avatarUrl ? (
-                <Image 
-                  src={`http://localhost:4000${profile.avatarUrl}`} 
+                <img 
+                  src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}${profile.avatarUrl}`} 
                   alt={profile.username}
-                  fill
-                  className="object-cover"
-                  priority
+                  className="w-full h-full object-cover"
                 />
               ) : (
                 <div className="w-full h-full bg-space-800 flex items-center justify-center">
@@ -79,23 +120,50 @@ export default function ProfilePage() {
             <div className="flex-1 text-center md:text-left space-y-4">
               <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <h1 className="text-4xl font-bold text-white">@{profile.username}</h1>
-                {isOwnProfile && (
-                  <Link href="/profile/edit">
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <Edit className="w-4 h-4" />
-                      Edit Profile
+                <div className="flex gap-2">
+                  {isOwnProfile ? (
+                    <Link href="/profile/edit">
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <Edit className="w-4 h-4" />
+                        Edit Profile
+                      </Button>
+                    </Link>
+                  ) : currentUser && (
+                    <Button 
+                      variant={isFollowing ? "outline" : "primary"} 
+                      size="sm" 
+                      onClick={handleFollow}
+                      className={isFollowing ? "border-red-500/50 text-red-500 hover:bg-red-500/10" : ""}
+                    >
+                      {isFollowing ? 'Unfollow' : 'Follow'}
                     </Button>
-                  </Link>
-                )}
+                  )}
+                </div>
               </div>
               
               <p className="text-gray-300 text-lg max-w-2xl">
                 {profile.bio || "No bio yet."}
               </p>
               
-              <div className="flex items-center justify-center md:justify-start gap-2 text-gray-400 text-sm">
-                <Calendar className="w-4 h-4" />
-                <span>Joined {new Date(profile.createdAt).toLocaleDateString()}</span>
+              <div className="flex items-center justify-center md:justify-start gap-6 text-gray-400 text-sm">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  <span>Joined {new Date(profile.createdAt).toLocaleDateString()}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  <span className="text-white font-bold">{followersCount}</span> Followers
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-white font-bold">{followingCount}</span> Following
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center md:justify-start gap-2 mt-2">
+                <div className="px-3 py-1 rounded-full bg-neon-purple/10 border border-neon-purple/30 text-neon-purple text-sm font-medium flex items-center gap-2">
+                  <Award className="w-4 h-4" />
+                  <span>Reputation: {profile.reputation || 0}</span>
+                </div>
               </div>
             </div>
           </div>

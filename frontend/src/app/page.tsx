@@ -3,13 +3,15 @@
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { motion } from 'framer-motion';
-import { MessageSquare, TrendingUp, Users, Loader2 } from 'lucide-react';
+import { MessageSquare, TrendingUp, Users, Loader2, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import useSWRInfinite from 'swr/infinite';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Input } from '@/components/ui/Input';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
 
 interface Post {
   id: string;
@@ -24,6 +26,7 @@ interface Post {
   reactions: any[];
   commentsCount?: number;
   reactionsCount?: number;
+  category?: string;
 }
 
 interface PostResponse {
@@ -41,10 +44,18 @@ const fetcher = (url: string) => axios.get(url).then(res => res.data);
 export default function Home() {
   const { isAuthenticated } = useAuth();
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('All');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 500);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const getKey = (pageIndex: number, previousPageData: PostResponse | null) => {
     if (previousPageData && !previousPageData.data.length) return null; // reached the end
-    return `${apiUrl}/posts?page=${pageIndex + 1}&limit=10`;
+    return `${apiUrl}/posts?page=${pageIndex + 1}&limit=10&search=${debouncedSearch}&category=${category}`;
   };
 
   const [visitedPosts, setVisitedPosts] = useState<string[]>([]);
@@ -102,16 +113,44 @@ export default function Home() {
 
       {/* Recent Discussions */}
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <h2 className="text-3xl font-bold text-white flex items-center gap-2">
             <span className="w-2 h-8 bg-neon-purple rounded-full" />
             Recent Discussions
           </h2>
-          {isAuthenticated && (
-            <Link href="/create-post">
-              <Button>New Post</Button>
-            </Link>
-          )}
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <div className="relative flex-1 md:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search topics..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full bg-space-800 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-neon-blue/50 transition-all"
+              />
+            </div>
+            {isAuthenticated && (
+              <Link href="/create-post">
+                <Button>New Post</Button>
+              </Link>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+          {['All', 'General', 'Tech', 'Random', 'News'].map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setCategory(cat)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                category === cat 
+                  ? 'bg-neon-blue text-black' 
+                  : 'bg-space-800 text-gray-400 hover:text-white hover:bg-space-700'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
         
         <div className="grid gap-4">
@@ -137,12 +176,20 @@ export default function Home() {
                   <Card hover className="group cursor-pointer h-full">
                     <div className="flex justify-between items-start">
                       <div className="space-y-2 w-full">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/10 text-neon-blue border border-neon-blue/20 uppercase tracking-wider">
+                            {post.category || 'General'}
+                          </span>
+                        </div>
                         <h3 className={`text-xl font-semibold transition-colors ${visitedPosts.includes(post.id) ? 'text-gray-500' : 'text-white group-hover:text-neon-blue'}`}>
                           {post.title}
                         </h3>
-                        <p className="text-gray-400 line-clamp-2">
-                          {post.content}
-                        </p>
+                        <div className="text-gray-400 line-clamp-2 h-[3rem] overflow-hidden">
+                          <MarkdownRenderer 
+                            content={post.content} 
+                            className="prose-sm prose-p:my-0 prose-headings:my-0 prose-ul:my-0 prose-li:my-0 [&>*]:my-0" 
+                          />
+                        </div>
                         <div className="flex justify-between items-center pt-4 border-t border-white/5 mt-4">
                           <div className="flex items-center gap-3 text-sm text-gray-500">
                             <div className="flex items-center gap-2 hover:text-neon-blue transition-colors" onClick={(e) => {
@@ -150,14 +197,11 @@ export default function Home() {
                               window.location.href = `/profile/${post.author?.username}`;
                             }}>
                               {post.author?.avatarUrl ? (
-                                <div className="relative w-6 h-6 rounded-full overflow-hidden">
-                                  <Image 
-                                    src={`http://localhost:4000${post.author.avatarUrl}`} 
-                                    alt={post.author.username}
-                                    fill
-                                    className="object-cover"
-                                  />
-                                </div>
+                                <img 
+                                  src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}${post.author.avatarUrl}`} 
+                                  alt={post.author.username}
+                                  className="w-6 h-6 rounded-full object-cover"
+                                />
                               ) : (
                                 <div className="w-6 h-6 rounded-full bg-space-700 flex items-center justify-center">
                                   <span className="text-xs text-white">{post.author?.username?.[0]?.toUpperCase() || '?'}</span>
